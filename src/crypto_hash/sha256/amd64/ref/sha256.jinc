@@ -374,7 +374,7 @@ inline fn __lastblocks_ref(reg u64 in inlen bits) -> stack u32[32], reg u64
   i += 1;
 
   // check if one or two blocks are needed
-  if(inlen < 56) 
+  if(inlen < 56) // 448 / 8 = 56
   { j = (64-8); nblocks = 1; }
   else
   { j = (128-8); nblocks = 2; }

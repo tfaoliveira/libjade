@@ -8,9 +8,9 @@ test_checksums: clean
 # to be refactored
 
 # override as desired
-TYPE=secretbox
-SCHEME=xsalsa20poly1305
-IMPLEMENTATION=amd64/avx2
+TYPE=sign
+SCHEME=dilithium/dilithium3
+IMPLEMENTATION=amd64/ref
 
 #
 
@@ -52,7 +52,7 @@ SCHEME_LIBRARY:=$(SCHEME_DIR)/lib$(SCHEME_IMPLEMENTATION_LC).a
 # This -Wall was supported by the European Commission through the ERC Starting Grant 805031 (EPOQUE)
 CFLAGS=-O3 -Wall -Wextra -Wpedantic -Wvla -Werror -std=c99 \
 	   -Wundef -Wshadow -Wcast-align -Wpointer-arith -Wmissing-prototypes\
-	   -fstrict-aliasing -fno-common -pipe \
+	   -fstrict-aliasing -fno-common -pipe -g \
 	   -I$(COMMON_DIR) $(EXTRAFLAGS)
 
 # Number of tests run for functests
@@ -131,6 +131,8 @@ clean:
 	$(RM) $(DEST_DIR)/functest_$(SCHEME_IMPLEMENTATION_LC)
 	$(RM) $(DEST_DIR)/testvectors_$(SCHEME_IMPLEMENTATION_LC)
 	$(RM) $(DEST_DIR)/printparams_$(SCHEME_IMPLEMENTATION_LC)
+	$(RM) $(DEST_DIR)/checksumsmall_$(SCHEME_IMPLEMENTATION_LC)
+	$(RM) $(DEST_DIR)/checksumbig_$(SCHEME_IMPLEMENTATION_LC)
 	$(MAKE) -C $(SRC_DIR) clean
 
 .PHONY: distclean
