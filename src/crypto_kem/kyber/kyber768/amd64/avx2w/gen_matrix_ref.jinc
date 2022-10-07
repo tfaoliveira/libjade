@@ -1,0 +1,188 @@
+//from Jade require "common/keccak/common/fips202_ref_DIRTY.jinc"
+
+// at this point fips202_DIRTY (corresponding to avx2) was already included and
+// function names do not include namespacing (overlap); types mismatch; hence the
+// next patch
+
+// ////////////////////////////////////////////////////////////////////////////
+
+from Jade require "common/keccak/keccak1600/amd64/ref1/keccak1600.jinc"
+from Jade require "common/keccak/keccak1600/amd64/ref1/keccakf1600.jinc"
+from Jade require "common/keccak/common/fips202_params_DIRTY.jinc" // SHAKE128_RATE
+from Jade require "crypto_kem/kyber/common/amd64/avx2/shuffle.jinc" // _nttunpack
+
+
+
+inline
+fn __shake128_absorb34_ref1(stack u64[25] state, reg const ptr u8[34] in) -> stack u64[25]
+{
+  reg u8 c;
+  inline int i;
+
+  state = __keccak_init_ref1();
+
+  for i = 0 to 34 {
+    c = in[i];
+    state[u8 i] ^= c;
+  }
+  state[u8 34] ^= 0x1f;
+  state[u8 SHAKE128_RATE-1] ^= 0x80;
+
+  return state;
+}
+
+inline
+fn __shake128_squeezeblock_ref1(stack u64[25] state, reg ptr u8[SHAKE128_RATE] out) -> stack u64[25], reg ptr u8[SHAKE128_RATE]
+{
+  stack ptr u8[SHAKE128_RATE] s_out;
+  reg u8 c;
+  inline int i;
+
+  s_out = out;
+  
+  state = __keccakf1600_ref1(state);
+
+  out = s_out;
+
+  for i = 0 to SHAKE128_RATE {
+    c = state[u8 (int) i];
+    out[i] = c;
+  }
+
+  return state, out;
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __rej_uniform(stack u16[KYBER_N] rp, reg u64 offset, stack u8[SHAKE128_RATE] buf) ->  reg u64, stack u16[KYBER_N]
+{
+  reg u16 val1 val2;
+  reg u16 t;
+  reg u64 pos ctr;
+  reg u64 cnd0 cnd1 exit;
+
+
+  ctr = offset;
+  pos = 0;
+  exit = 0;
+
+  while(exit == 0)
+  {
+    val1 = (16u)buf[(int)pos];
+    pos += 1;
+    t   = (16u)buf[(int)pos];
+    val2 = t;
+    val2 >>= 4;
+    t &= 0x0F;
+    t <<= 8;
+    val1 |= t;
+    pos += 1;
+
+    t   = (16u)buf[(int)pos];
+    t <<= 4;
+    val2 |= t;
+    pos += 1;
+
+    if(val1 < KYBER_Q)
+    {
+      rp[(int)ctr] = val1;
+      ctr += 1;
+    }
+
+    if(val2 < KYBER_Q)
+    {
+      if(ctr < KYBER_N)
+      {
+        rp[(int)ctr] = val2;
+        ctr += 1;
+      }
+    }
+
+    // Check if we should exit the loop
+    cnd0  = KYBER_N;
+    cnd0 -= ctr;
+    cnd0 -= 1;
+    cnd1  = SHAKE128_RATE;
+    cnd1 -= pos;
+    cnd1 -= 3; //TODO: (potentially) wasting 2 'good' bytes
+    exit  = cnd0 | cnd1;
+    exit >>= 63;
+  }
+
+  return ctr, rp;
+}
+
+inline
+fn __gen_matrix(stack u8[KYBER_SYMBYTES] seed, reg u64 transposed) -> stack u16[KYBER_K*KYBER_VECN]
+{
+  stack u8[34] extseed;
+  stack u8[SHAKE128_RATE] buf;
+  stack u64[25] state;
+  stack u16[KYBER_N] poly;
+  stack u16[KYBER_K*KYBER_VECN] r;
+
+  reg u8 c;
+  reg u16 t;
+  reg u64 ctr k l;
+  stack u64 sctr;
+  stack u64 stransposed;
+  inline int j i;
+
+  stransposed = transposed;
+
+  for j = 0 to KYBER_SYMBYTES
+  {
+    c = seed[j];
+    extseed[j] = c;
+  }
+
+  for i=0 to KYBER_K
+  {
+    for j = 0 to KYBER_K
+    {
+      transposed = stransposed;
+      if(transposed == 0)
+      {
+        extseed[KYBER_SYMBYTES] = j;
+        extseed[KYBER_SYMBYTES+1] = i;
+      }
+      else
+      {
+        extseed[KYBER_SYMBYTES] = i;
+        extseed[KYBER_SYMBYTES+1] = j;
+      }
+
+      state = __shake128_absorb34_ref1(state, extseed);
+
+      ctr = 0;
+      while (ctr < KYBER_N)
+      {
+        sctr = ctr;
+        state, buf = __shake128_squeezeblock_ref1(state, buf);
+        ctr = sctr;
+        ctr, poly  = __rej_uniform(poly, ctr, buf);
+      }
+
+      k = 0;
+      l = i * KYBER_VECN + j * KYBER_N;
+      while (k < KYBER_N)
+      {
+        t = poly[(int) k];
+        r[(int) l] = t;
+        k += 1;
+        l += 1;
+      }
+    }
+  }
+
+  for i = 0 to KYBER_K
+  {
+    for j = 0 to KYBER_K
+    {
+      r[i*KYBER_VECN+j*KYBER_N:KYBER_N] = _nttunpack(r[i*KYBER_VECN+j*KYBER_N:KYBER_N]);
+    }
+  }
+
+  return r;
+}

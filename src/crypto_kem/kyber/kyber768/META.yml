@@ -35,3 +35,14 @@ implementations:
               - avx2
               - bmi2
               - popcnt
+    - name: amd64/avx2w
+      version: TODO
+      supported_platforms:
+        - architecture: x86_64
+          operating_systems:
+              - Linux
+              - Darwin
+          required_flags:
+              - avx2
+              - bmi2
+              - popcnt
