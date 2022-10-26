@@ -1,0 +1,141 @@
+// the following implementation requires:
+// - (even) param int CHACHA_ROUNDS;
+// - inline fn __init_spec(reg u64 nonce key) -> stack u32[16] (check chacha_state.jinc)
+// - inline fn __increment_counter_spec(stack u32[16] state) -> stack u32[16] (check chacha_state.jinc)
+
+inline fn __copy_state_spec(stack u32[16] st) -> stack u32[16]
+{
+  inline int i;
+  stack u32[16] k;
+  reg u32 t;
+
+  for i=0 to 16
+  { t = st[i];
+    k[i] = t; }
+
+  return k;
+}
+
+inline fn __line_spec(stack u32[16] k, inline int a b c r) -> stack u32[16]
+{
+  reg u32 ta tb tc;
+
+  ta = k[a];
+  tb = k[b];
+  tc = k[c];
+
+  ta += tb;
+  tc ^= ta;
+  tc = #ROR(tc, (32-r));
+
+  k[a] = ta;
+  k[c] = tc;
+
+  return k;
+}
+
+inline fn __quarter_round_spec(stack u32[16] k, inline int a b c d) -> stack u32[16]
+{
+  k = __line_spec(k, a, b, d, 16);
+  k = __line_spec(k, c, d, b, 12);
+  k = __line_spec(k, a, b, d, 8);
+  k = __line_spec(k, c, d, b, 7);
+  return k;
+}
+
+inline fn __column_round_spec(stack u32[16] k) -> stack u32[16]
+{
+  k = __quarter_round_spec(k, 0, 4,  8, 12);
+  k = __quarter_round_spec(k, 1, 5,  9, 13);
+  k = __quarter_round_spec(k, 2, 6, 10, 14);
+  k = __quarter_round_spec(k, 3, 7, 11, 15);
+  return k;
+}
+
+inline fn __diagonal_round_spec(stack u32[16] k) -> stack u32[16]
+{
+  k = __quarter_round_spec(k, 0, 5, 10, 15);
+  k = __quarter_round_spec(k, 1, 6, 11, 12);
+  k = __quarter_round_spec(k, 2, 7, 8,  13);
+  k = __quarter_round_spec(k, 3, 4, 9,  14);
+  return k;
+}
+
+inline fn __double_round_spec(stack u32[16] k) -> stack u32[16]
+{
+  k = __column_round_spec(k);
+  k = __diagonal_round_spec(k);
+  return k;
+}
+
+inline fn __rounds_spec(stack u32[16] k) -> stack u32[16]
+{
+  reg bool zf;
+  reg u32 c;
+
+  c = (CHACHA_ROUNDS/2);
+  while
+  { k = __double_round_spec(k);
+    _, zf, _, _, c = #SUBS(c, 1);
+  } (!zf)
+
+  return k;
+}
+
+inline fn __sum_states_spec(stack u32[16] k st) -> stack u32[16]
+{
+  inline int i;
+  reg u32 tk tst;
+
+  for i=0 to 16
+  { tk = k[i];
+    tst = st[i];
+    tk += tst;
+    k[i] = tk;
+  }
+
+  return k;
+}
+
+inline fn __chacha_xor_spec(reg u32 output plain len nonce key)
+{
+  stack u32[16] k st;
+
+  st = __init_spec(nonce, key);
+
+  while (len >= 64)
+  { k = __copy_state_spec(st);
+    k = __rounds_spec(k);
+    output, plain, len = __sum_states_store_xor_spec(output, plain,len, k, st);
+    st = __increment_counter_spec(st);
+  }
+
+  if(len > 0)
+  { k = __copy_state_spec(st);
+    k = __rounds_spec(k);
+    k = __sum_states_spec(k, st);
+    __store_xor_last_spec(output, plain, len, k);
+  }
+}
+
+inline fn __chacha_spec(reg u32 output len nonce key)
+{
+  stack u32[16] k st;
+
+  st = __init_spec(nonce, key);
+
+  while (len >= 64)
+  { k = __copy_state_spec(st);
+    k = __rounds_spec(k);
+    output, len = __sum_states_store_spec(output, len, k, st);
+    st = __increment_counter_spec(st);
+  }
+
+  if(len > 0)
+  { k = __copy_state_spec(st);
+    k = __rounds_spec(k);
+    k = __sum_states_spec(k, st);
+    __store_last_spec(output, len, k);
+  }
+}
+

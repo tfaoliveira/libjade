@@ -1,0 +1,135 @@
+
+///////////////////////////////////////////////////////////////////////////////
+// store 'xor' ////////////////////////////////////////////////////////////////
+
+inline fn __update_ptr_xor_spec(reg u32 output plain len, inline int n) -> reg u32, reg u32, reg u32
+{
+  output += n;
+  plain += n;
+  len -= n;
+  return output, plain, len;
+}
+
+// 64 bytes
+inline fn __store_xor_spec(reg u32 output plain len, stack u32[16] k) -> reg u32, reg u32, reg u32
+{
+  inline int i;
+  reg u32 t v;
+
+  for i=0 to 16
+  { t = k[i];
+    v = [plain + 4*i];
+    t ^= v;
+    [output + 4*i] = t;
+  }
+
+  output, plain, len = __update_ptr_xor_spec(output, plain, len, 64);
+
+  return output, plain, len;
+}
+
+inline fn __sum_states_store_xor_spec(
+  reg u32 output plain len,
+  stack u32[16] k st)
+  ->
+  reg u32, reg u32, reg u32
+{
+  inline int i;
+  reg u32 t s v;
+
+  for i=0 to 16
+  { t = k[i];
+    s = st[i];
+    v = [plain + 4*i];
+    t += s;
+    t ^= v;
+    [output + 4*i] = t;
+  }
+
+  output, plain, len = __update_ptr_xor_spec(output, plain, len, 64);
+
+  return output, plain, len;
+}
+
+// len bytes
+inline fn __store_xor_last_spec(reg u32 output plain len, stack u32[16] k)
+{
+  reg u32 j t v;
+  reg ptr u32[16] kp; // TODO write doc. about the reason for this.
+
+  kp = k;
+  j = 0;
+  while(j < len)
+  { t = (32u)kp[u8 (int)j];
+    v = (32u)(u8)[plain + j];
+    t ^= v;
+    (u8)[output + j] = t;
+    j += 1;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// store //////////////////////////////////////////////////////////////////////
+
+inline fn __update_ptr_spec(reg u32 output len, inline int n) -> reg u32, reg u32
+{
+  output += n;
+  len -= n;
+  return output, len;
+}
+
+// 64 bytes
+inline fn __store_spec(reg u32 output len, stack u32[16] k) -> reg u32, reg u32
+{
+  inline int i;
+  reg u32 t;
+
+  for i=0 to 16
+  { t = k[i];
+    [output + 4*i] = t;
+  }
+
+  output, len = __update_ptr_spec(output, len, 64);
+
+  return output, len;
+}
+
+inline fn __sum_states_store_spec(
+  reg u32 output len,
+  stack u32[16] k st)
+  ->
+  reg u32, reg u32
+{
+  inline int i;
+  reg u32 t s;
+
+  for i=0 to 16
+  { t = k[i];
+    s = st[i];
+    t += s;
+    [output + 4*i] = t;
+  }
+
+  output, len = __update_ptr_spec(output, len, 64);
+
+  return output, len;
+}
+
+// len bytes
+inline fn __store_last_spec(reg u32 output len, stack u32[16] k)
+{
+  reg u32 j t;
+  reg ptr u32[16] kp; // write documentation about the reason for this.
+
+  kp = k;
+
+  j = 0;
+  while(j < len)
+  {
+    t = (32u)kp[u8 (int)j];
+    (u8)[output + j] = t;
+    j += 1;
+  }
+}
+
+

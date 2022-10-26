@@ -1,0 +1,73 @@
+
+// CHECKME
+// u32[4] CHACHA_SIGMA = { 0x61707865, 0x3320646e, 0x79622d32, 0x6b206574 };
+
+// nonce : 8 bytes
+// key : 32 bytes
+// counter : 8 bytes (starts at 0)
+inline fn __init_spec(reg u32 nonce key) -> stack u32[16]
+{
+  reg ptr u32[4] sigma;
+  stack u32[16] st;
+  reg u32 t;
+  inline int i;
+
+  // CHECKME
+  // sigma = CHACHA_SIGMA;
+  // for i=0 to 4
+  // { t = sigma[i];
+  //   st[i] = t; }
+    t = 0x7865;
+    t = #MOVT(t, 0x6170);
+    st[0] = t;
+
+    t = 0x646e;
+    t = #MOVT(t, 0x3320);
+    st[1] = t;
+
+    t = 0x2d32;
+    t = #MOVT(t, 0x7962);
+    st[2] = t;
+
+    t = 0x6574;
+    t = #MOVT(t, 0x6b20);
+    st[3] = t;
+
+  // reads 8 u32 from pointer key
+  for i=0 to 8
+  { t = (u32)[key + 4*i];
+    st[4+i] = t; }
+
+  // 64-bit counter
+  t = 0;
+  st[12] = t;
+  st[13] = t;
+
+  // reads 2 u32 from pointer nonce
+  for i=0 to 2
+  { t = (u32)[nonce + 4*i];
+    st[14+i] = t; }
+
+  return st;
+}
+
+// increments 64-bit counter
+inline fn __increment_counter_spec(stack u32[16] st) -> stack u32[16]
+{
+  reg bool cf;
+  reg u32 l h;
+
+  l = st[12];
+  h = st[13];
+
+  // CHECKME
+  //cf, l += 1;
+  //_, h += 0 + cf;
+  _, _, cf, _, l = #ADDS(l, 1);
+  h = #ADDcc(h, 1, cf, h);
+
+  st[12] = l;
+  st[13] = h;
+
+  return st;
+}

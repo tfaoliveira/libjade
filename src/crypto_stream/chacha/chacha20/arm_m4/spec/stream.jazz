@@ -1,0 +1,26 @@
+param int CHACHA_ROUNDS=20;
+
+from Jade require "crypto_stream/chacha/common/arm_m4/spec/chacha.jinc"
+
+// TODO: nonce_key needs fixing for testing
+// - register allocation: too many parameters according to the ABI
+export fn jade_stream_chacha_chacha20_arm_m4_spec_xor(reg u32 output plain len nonce_key) -> reg u32
+{
+  reg u32 r nonce key;
+
+  nonce = nonce_key;
+  key = nonce_key;
+  key += 8;
+  __chacha_xor_spec(output, plain, len, nonce, key);
+  r = 0;
+  return r;
+}
+
+export fn jade_stream_chacha_chacha20_arm_m4_spec(reg u32 output len nonce key) -> reg u32
+{
+  reg u32 r;
+  __chacha_spec(output, len, nonce, key);
+  r = 0;
+  return r;
+}
+
