@@ -24,3 +24,10 @@ implementations:
           operating_systems:
               - Linux
               - Darwin
+    - name: amd64/mulxra
+      version: 0.0.1
+      supported_platforms:
+        - architecture: x86_64
+          operating_systems:
+              - Linux
+              - Darwin

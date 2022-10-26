@@ -44,7 +44,7 @@ inline fn __sqr4_rr(reg u64[4] f) -> reg u64[4]
    of, r[1]    = #ADOX ( r[1], z,    of );
 
    cf, r[2]    = #ADCX ( r[2], z,    cf ); // cf = 0
-   of, r[2]    = #ADOX ( r[2], z,    of ); // of = 0 ?? TODO: VERIFYME
+   of, r[2]    = #ADOX ( r[2], z,    of ); // of = 0
 
   (t[5], t[4]) = #MULX ( fx,   fx       ); // f2*f2
 
