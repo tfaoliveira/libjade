@@ -81,6 +81,26 @@ inline fn __sqr4_rr(reg u64[4] f) -> reg u64[4]
   return h;
 }
 
+#[returnaddress="stack"]
+fn _sqr4_rr(reg u64[4] f) -> reg u64[4]
+{
+  reg u64[4] h;
+  h = __sqr4_rr(f);
+  return h;
+}
+
+inline fn __sqr4_rr_(reg u64[4] f) -> reg u64[4]
+{
+  reg u64[4] h _h _f;
+ 
+  _f = #copy(f);
+  _h = _sqr4_rr(_f);
+  h = #copy(_h);
+  return h;  
+}
+
+
+
 inline fn __it_sqr4_x2(reg u64[4] f, reg u32 i) -> reg u64[4]
 {
   reg bool zf;

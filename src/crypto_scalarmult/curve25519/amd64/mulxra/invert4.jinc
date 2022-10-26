@@ -10,12 +10,12 @@ inline fn __invert4(reg u64[4] f) -> reg u64[4]
   fs = #copy(f);
 
   // z2 = z1^2^1
-  t0  = __sqr4_rr(f);
+  t0  = __sqr4_rr_(f);
   t0s = #copy(t0);
 
   // z8 = z2^2^2
-  t1  = __sqr4_rr(t0);
-  t1  = __sqr4_rr(t1);
+  t1  = __sqr4_rr_(t0);
+  t1  = __sqr4_rr_(t1);
 
   // z9 = z1*z8
   t1  = __mul4_rsr_(fs,t1);
@@ -26,14 +26,14 @@ inline fn __invert4(reg u64[4] f) -> reg u64[4]
   t0s = #copy(t0);
 
   // z22 = z11^2^1
-  t2 = __sqr4_rr(t0);
+  t2 = __sqr4_rr_(t0);
 
   // z_5_0 = z9*z22
   t1  = __mul4_rsr_(t1s,t2);
   t1s = #copy(t1);
 
   // z_10_5 = z_5_0^2^5
-  t2 = __sqr4_rr(t1);
+  t2 = __sqr4_rr_(t1);
   i = 4/2;
   t2 = __it_sqr4_x2_(t2, i);
   t2s = #copy(t2);
@@ -90,7 +90,7 @@ inline fn __invert4(reg u64[4] f) -> reg u64[4]
   // z_255_5 = z_250_0^2^5
   i = 4/2;
   t1 = __it_sqr4_x2_(t1, i);
-  t1 = __sqr4_rr(t1);
+  t1 = __sqr4_rr_(t1);
 
   // z_255_21 = z_255_5*z11
   t1 = __mul4_rsr_(t0s,t1);
