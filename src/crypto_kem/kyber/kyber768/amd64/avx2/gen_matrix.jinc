@@ -280,10 +280,21 @@ fn __shake128_squeezenblocks4x(reg ptr u256[25] state, reg ptr u8[REJ_UNIFORM_AV
   -> reg ptr u256[25], reg ptr u8[REJ_UNIFORM_AVX_BUFLEN], reg ptr u8[REJ_UNIFORM_AVX_BUFLEN], reg ptr u8[REJ_UNIFORM_AVX_BUFLEN], reg ptr u8[REJ_UNIFORM_AVX_BUFLEN]
 {
   inline int i;
+  reg ptr u8[SHAKE128_RATE] h0b h1b h2b h3b;
 
   for i = 0 to GENMATRIX_NBLOCKS
   {
-    state, h0[i*SHAKE128_RATE:SHAKE128_RATE], h1[i*SHAKE128_RATE:SHAKE128_RATE], h2[i*SHAKE128_RATE:SHAKE128_RATE], h3[i*SHAKE128_RATE:SHAKE128_RATE] = __shake128_squeezeblock4x(state, h0[i*SHAKE128_RATE:SHAKE128_RATE], h1[i*SHAKE128_RATE:SHAKE128_RATE], h2[i*SHAKE128_RATE:SHAKE128_RATE], h3[i*SHAKE128_RATE:SHAKE128_RATE]);
+    h0b = h0[i*SHAKE128_RATE:SHAKE128_RATE];
+    h1b = h1[i*SHAKE128_RATE:SHAKE128_RATE];
+    h2b = h2[i*SHAKE128_RATE:SHAKE128_RATE];
+    h3b = h3[i*SHAKE128_RATE:SHAKE128_RATE];
+
+    state, h0b, h1b, h2b, h3b = __shake128_squeezeblock4x(state, h0b, h1b, h2b, h3b);
+
+    h0[i*SHAKE128_RATE:SHAKE128_RATE] = h0b;
+    h1[i*SHAKE128_RATE:SHAKE128_RATE] = h1b;
+    h2[i*SHAKE128_RATE:SHAKE128_RATE] = h2b;
+    h3[i*SHAKE128_RATE:SHAKE128_RATE] = h3b;
   }
 
   return state, h0, h1, h2, h3;
