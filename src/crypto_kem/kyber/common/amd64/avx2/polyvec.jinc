@@ -230,18 +230,31 @@ fn __polyvec_reduce(stack u16[KYBER_VECN] r) -> stack u16[KYBER_VECN]
 inline
 fn __polyvec_pointwise_acc(stack u16[KYBER_N] r, stack u16[KYBER_VECN] a b) -> stack u16[KYBER_N]
 {
-  stack u16[KYBER_N] t;
   inline int i;
 
-  r = _poly_basemul(r, a[0:KYBER_N], b[0:KYBER_N]);
+  stack u16[KYBER_N] t;
+  reg ptr u16[KYBER_N] tp rp ap bp;
+
+  rp = r;
+  ap = a[0:KYBER_N];
+  bp = b[0:KYBER_N];
+  rp = _poly_basemul(rp, ap, bp);
+
+  r  = rp; //
+  tp = t;  // tp needs to go to prev. rp register
+  rp = r;  //
+
   for i=1 to KYBER_K
   {
-    t = _poly_basemul(t, a[i*KYBER_N:KYBER_N], b[i*KYBER_N:KYBER_N]);
-    r = _poly_add2(r, t);
+    ap = a[i*KYBER_N:KYBER_N];
+    bp = b[i*KYBER_N:KYBER_N];
+
+    tp = _poly_basemul(tp, ap, bp);
+    rp = _poly_add2(rp, tp);
   }
 
-  r = __poly_reduce(r);
-  
+  rp = __poly_reduce(rp);
+  r = rp;
   return r;
 }
 
