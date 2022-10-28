@@ -3,10 +3,11 @@
 # --------------------------------------------------------------------
 AS      ?= as
 CC      ?= gcc
-CFLAGS  ?= -Wall -Ofast
+CFLAGS  ?= -Wall -O3
 CI      ?= 0
 export CI
 EXCLUDE ?=
+JASMIN  ?= jasminc
 
 # --------------------------------------------------------------------
 SRC    := .
@@ -55,7 +56,7 @@ clean:
 	for i in $(ECMK); do $(MAKE) -C $$i -f Ec.mk clean; done
 
 distclean: clean
-	rm -fr libjade.a libjade.h $(BUILD) check.tar.gz
+	rm -fr libjade.a libjade.h $(BUILD) check.tar.gz libjade-asm.tar.gz
 
 # --------------------------------------------------------------------
 ifeq ($(CI),1)
@@ -65,6 +66,11 @@ CIL := $(shell find $(SRC) -name '.ci')
 
 check.tar.gz:
 	@tar -zcvf $@ $(CIL)
+
+libjade-asm.tar.gz:
+	$(JASMIN) -version > notes
+	@tar -zcvf $@ $(ASM:./%=%) $(API:./%=%) notes
+	rm notes
 
 report:
 	./../scripts/ci/jsrc
