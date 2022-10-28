@@ -1256,7 +1256,10 @@ fn _KeccakF1600_StatePermute4x(reg ptr u256[25] A_4x) -> reg ptr u256[25]
 {
     reg u256 Ca, Ce, Ci, Co, Cu;
 
-    stack u256[25] E_4x;
+    stack u256[25] _E_4x;
+    reg ptr u256[25] E_4x;
+
+    E_4x = _E_4x;
 
     /** Rounds24 **/
     Ca, Ce, Ci, Co, Cu = __prepare_theta(A_4x);
