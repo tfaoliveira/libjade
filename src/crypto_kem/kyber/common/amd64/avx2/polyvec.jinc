@@ -8,7 +8,7 @@ fn __polyvec_add2(stack u16[KYBER_VECN] r, stack u16[KYBER_VECN] b) -> stack u16
 
   for i=0 to KYBER_K
   {
-    r[i*KYBER_N:KYBER_N]         = _poly_add2(r[i*KYBER_N:KYBER_N], b[i*KYBER_N:KYBER_N]);
+    r[i*KYBER_N:KYBER_N] = _poly_add2(r[i*KYBER_N:KYBER_N], b[i*KYBER_N:KYBER_N]);
   }
 
   return r;
