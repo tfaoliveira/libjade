@@ -60,11 +60,8 @@ inline fn __increment_counter_spec(stack u32[16] st) -> stack u32[16]
   l = st[12];
   h = st[13];
 
-  // CHECKME
-  //cf, l += 1;
-  //_, h += 0 + cf;
-  _, _, cf, _, l = #ADDS(l, 1);
-  h = #ADDcc(h, 1, cf, h);
+  cf, l += 1;
+  _, h += 0 + cf;
 
   st[12] = l;
   st[13] = h;
