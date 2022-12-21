@@ -1,0 +1,239 @@
+from Jade require "crypto_kem/kyber/kyber768/common/params.jinc"
+
+from Jade require "common/keccak/keccak1600/amd64/ref1/keccak1600.jinc"
+from Jade require "common/keccak/keccak1600/amd64/ref1/keccakf1600.jinc"
+from Jade require "common/keccak/common/fips202_params_DIRTY.jinc"
+
+
+#[returnaddress="stack"]
+fn _shake256_128_33_ref1(reg ptr u8[128] out, reg const ptr u8[33] in) -> stack u8[128]
+{
+  stack ptr u8[128] s_out;
+  stack u64[25] state;
+  reg u8 c;
+  inline int i;
+
+  s_out = out;
+
+  state =  __keccak_init_ref1();
+
+  for i = 0 to 33 {
+    c = in[i];
+    state[u8 i] ^= c;
+  }
+  state[u8 33] ^= 0x1f;
+  state[u8 SHAKE256_RATE-1] ^= 0x80;
+
+  state = __keccakf1600_ref1(state);
+
+  out = s_out;
+  
+  for i = 0 to 128 {
+    c = state[u8 i];
+    out[i] = c;
+  }
+  return out;
+}
+
+
+#[returnaddress="stack"]
+fn _shake256_192_33_ref1(reg ptr u8[192] out, reg const ptr u8[33] in) -> stack u8[192]
+{
+  stack ptr u8[192] s_out;
+  stack u64[25] state;
+  reg u8 c;
+  inline int i;
+
+  s_out = out;
+
+  state =  __keccak_init_ref1();
+
+  for i = 0 to 33 {
+    c = in[i];
+    state[u8 i] ^= c;
+  }
+  state[u8 33] ^= 0x1f;
+  state[u8 SHAKE256_RATE-1] ^= 0x80;
+
+  state = __keccakf1600_ref1(state);
+
+  out = s_out;
+  
+  for i = 0 to SHAKE256_RATE {
+    c = state[u8 i];
+    out[i] = c;
+  }
+
+  s_out = out;
+
+  state = __keccakf1600_ref1(state);
+
+  out = s_out;
+  
+  for i = 0 to (192-SHAKE256_RATE) {
+    c = state[u8 i];
+    out[SHAKE256_RATE + i] = c;
+  }
+
+  return out;
+}
+
+inline
+fn __load24_ref1(reg ptr u8[KYBER_ETA1*KYBER_N/4] buf, reg u64 i) -> reg u32
+{
+  reg u32 r t;
+
+  r = (32u)buf[(int)i];
+
+  t = (32u)buf[(int)i+1];
+  t <<= 8;
+  r |= t;
+
+  t = (32u)buf[(int)i+2];
+  t <<= 16;
+  r |= t;
+
+  t &= 0x00FFFFFF;
+
+  return r;
+}
+
+inline
+fn __cbd2_ref1(reg ptr u16[KYBER_N] rp, reg ptr u8[KYBER_ETA2*KYBER_N/4] buf) -> reg ptr u16[KYBER_N]
+{
+  reg u8 c,a,b;
+  reg u16 t;
+  reg u64 i j;
+
+  i = 0;
+  j = 0;
+  while (i < KYBER_ETA2*KYBER_N/4) {
+    c = buf[(int)i];
+    a = c;
+    a &= 0x55;
+
+    c >>= 1;
+    c &= 0x55;
+    c += a;
+
+    a = c;
+    a &= 0x3;
+    b = c;
+    b >>= 2;
+    b &= 0x3;
+    a -= b;
+    t = (16s)a;
+    rp[(int)j] = t;
+    a = c;
+    a >>= 4;
+    a &= 0x3;
+    b = c >> 6;
+    b &= 0x3;
+    a -= b;
+    t = (16s)a;
+    j += 1;
+    rp[(int)j] = t;
+    i += 1;
+    j += 1;
+  }
+
+  return rp;
+}
+
+inline
+fn __cbd3_ref1(reg ptr u16[KYBER_N] rp, reg ptr u8[KYBER_ETA1*KYBER_N/4] buf) -> reg ptr u16[KYBER_N]{
+  reg u64 i j t;
+  reg u32 t0 t1 t2;
+  reg u16 r;
+  reg u8 a, b;
+  inline int k;
+
+  i = 0;
+  j = 0;
+  while(i < KYBER_N/4)
+  {
+    t = 3*i;
+    t0 = __load24_ref1(buf, t);
+
+    t1 = t0;
+    t1 &= 0x00249249;
+
+    t0 >>= 1;
+    t2 = t0;
+    t2 &= 0x00249249;
+    t1 += t2;
+
+    t0 >>= 1;
+    t0 &= 0x00249249;
+    t0 += t1;
+
+    for k=0 to 4
+    {
+      a = t0;
+      a &= 0x7;
+
+      b = t0;
+      b >>= 3;
+      b &= 0x7;
+
+      a -= b;
+      r = (16s)a;
+      rp[(int)j] = r;
+
+      t0 >>= 6;
+      j += 1;
+    }
+
+    i += 1;
+  }
+
+  return rp;
+}
+
+inline
+fn __poly_cbd_eta1_ref1(reg ptr u16[KYBER_N] rp, reg ptr u8[KYBER_ETA1*KYBER_N/4] buf) -> reg ptr u16[KYBER_N]
+{
+  if(KYBER_ETA1 == 2) { // resolved at compile-time
+    rp = __cbd2_ref1(rp, buf[0:KYBER_ETA2*KYBER_N/4]);
+  } else {
+    rp = __cbd3_ref1(rp, buf);
+  }
+
+  return rp;
+}
+
+
+fn _poly_getnoise_eta1(reg ptr u16[KYBER_N] rp, reg ptr u8[KYBER_SYMBYTES] seed, reg u8 nonce) -> reg ptr u16[KYBER_N]
+{
+  stack ptr u16[KYBER_N] s_rp;
+  stack u8[KYBER_SYMBYTES+1] extseed;
+  /* FIXME (DIRTY HACK): currently allocates 64 more bytes (than necessary) for buf in Kyber768
+   *                     to prevent code duplication because _shake256_192_33 expects 192 bytes (instead of 128)
+   *                     even though it is only called in Kyber 512
+   */
+  stack u8[KYBER_ETA1*KYBER_N/4 + (3 - KYBER_ETA1)*64] buf;  
+  reg u8 c;
+  inline int k;
+
+  s_rp = rp;
+  
+  for k = 0 to KYBER_SYMBYTES
+  {
+    c = seed[k];
+    extseed[k] = c;
+  }
+  extseed[KYBER_SYMBYTES] = nonce;
+
+  if(KYBER_ETA1 == 2)
+  {
+    buf[0:KYBER_ETA2*KYBER_N/4] = _shake256_128_33_ref1(buf[0:KYBER_ETA2*KYBER_N/4], extseed);
+  } else {
+    buf = _shake256_192_33_ref1(buf, extseed);
+  }
+
+  rp = s_rp;
+  rp = __poly_cbd_eta1_ref1(rp, buf[0:KYBER_ETA1*KYBER_N/4]);
+
+  return rp;
+}
+
